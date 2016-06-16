@@ -1,0 +1,267 @@
+saved finger logic
+
+has mem issues
+
+
+    // we are on thumb, and index is extended
+    if (finger.type() == 0 && fingers[1].isExtended())
+    {
+      Leap::Vector position = finger.stabilizedTipPosition();
+      Leap::Finger indexFinger = fingers[1];
+      Leap::Finger middleFinger = fingers[2];
+
+      //Distance from index -> thumb
+      float ThumbPointerDifference_X = position.x - hand.palmPosition().x;
+      float ThumbPointerDifference_Y = position.y - indexFinger.stabilizedTipPosition().y;
+      //Distance from thumb -> middle
+      float ThumbMiddleDifference_X = abs(middleFinger.stabilizedTipPosition().x - indexFinger.stabilizedTipPosition().x);
+
+
+      //       tempDebug = QString::number(ThumbMiddleDifference_X); //20
+      // tempDebug.append("\n");
+      //       tempDebug.append(QString::number(abs(middleFinger.stabilizedTipPosition().y - indexFinger.stabilizedTipPosition().y))); // 5
+      // tempDebug.append("\n");
+      //       tempDebug.append(QString::number(debug_extendedFingerCounter));
+
+      //Simple left click when thumb is extended
+
+      if (ui.checkBox_indexMouse->isChecked())
+      {
+        if (ThumbPointerDifference_X > 60 && bLeftClickToggle == false && bLeftClickDragToggle == false)
+        {
+          bLeftClickToggle = true;
+          MouseKeyboardEmulation::MouseLeftClickDown();
+          MouseKeyboardEmulation::MouseLeftClickUp();
+        }
+        if (ThumbPointerDifference_X < 40 && bLeftClickToggle == true)
+          bLeftClickToggle = false;
+      }
+
+      //simple click and hold while thumb and middle are next to eachother
+      //let go when they are away
+      /*
+       if (debug_extendedFingerCounter <= 3 && abs(middleFinger.stabilizedTipPosition().y - indexFinger.stabilizedTipPosition().y) < 5 && bLeftClickDragToggle == false && bLeftClickToggle == false)
+      {
+        std::cout << "holding";
+          bLeftClickDragToggle = true;
+          MouseKeyboardEmulation::MouseLeftClickDown();
+
+      }
+      if (abs(middleFinger.stabilizedTipPosition().y - indexFinger.stabilizedTipPosition().y) > 20 && bLeftClickDragToggle == true)
+      {
+        std::cout << "let go";
+          bLeftClickDragToggle = false;
+          MouseKeyboardEmulation::MouseLeftClickUp();
+      }
+      */
+
+    }
+
+    //pinkie finger
+    if (finger.type() == 4)
+    {
+      // If the finger is extended
+      // And we did not declare a focus center
+      // Declare a focus center
+      if (finger.isExtended() && MouseFocusCenter.x == -1)
+      {
+        POINT CurrentMousePos;
+        GetCursorPos(&CurrentMousePos);
+        MouseFocusCenter.x = CurrentMousePos.x;
+        MouseFocusCenter.y = CurrentMousePos.y;
+      }
+      // if finger is not extended
+      // but a focus center is declared
+      // reset focus center
+      else if (!finger.isExtended() && MouseFocusCenter.x != -1)
+      {
+        MouseFocusCenter.x = -1;
+        MouseFocusCenter_LeapCoords.setX(-1);
+      }
+    }
+
+    if (finger.type() == 1 && finger.isExtended())
+    {
+
+      Leap::Vector position = finger.stabilizedTipPosition();
+
+// QUrl mp3Url = QUrl::fromLocalFile(QApplication::applicationDirPath().append("/phoenix_objection.mp3")); //assuming you want to play a local file
+// QDesktopServices::openUrl(mp3Url);
+
+// player->setMedia(QUrl::fromLocalFile("/Users/me/Music/coolsong.mp3"));
+// player->setVolume(50);
+// player->play();
+
+      /*
+      if(!bLeftClickDragToggle && !bLeftClickToggle && position.z <= -55)
+      {
+        bLeftClickDragToggle = true;
+              MouseKeyboardEmulation::MouseLeftClickDown();
+
+          }
+      if (bLeftClickDragToggle && position.z >= -30)
+          {
+              bLeftClickDragToggle = false;
+              MouseKeyboardEmulation::MouseLeftClickUp();
+      }
+      */
+
+      float tempX = position.x + 100;
+      float tempY = position.y - 10;
+
+      POINT CurrentMousePos;
+      GetCursorPos(&CurrentMousePos);
+      // a focus center is declared
+      // zoom-in mode activated
+      if (MouseFocusCenter.x == -1)
+      {
+        tempX = tempX > 200 ? 200 : tempX < 0 ? 0 : tempX;
+        tempX = ScreenResX * (tempX / 200);
+
+        tempY = tempY > 220 ? 220 : tempY < 0 ? 0 : tempY;
+        tempY = ScreenResY - (ScreenResY * (tempY / 220));
+      }
+      else
+      {
+        //setup the offset from leap coordinates
+        if (MouseFocusCenter_LeapCoords.x() == -1)
+        {
+          MouseFocusCenter_LeapCoords.setX(position.x);
+          MouseFocusCenter_LeapCoords.setY(position.y);
+        }
+
+
+
+        tempX = position.x - MouseFocusCenter_LeapCoords.x() + 100;
+        tempY = position.y - MouseFocusCenter_LeapCoords.y();
+
+        // tempDebug.clear();
+        // tempDebug.append(QString::number(MouseFocusCenter_LeapCoords.x()) + ", " + QString::number(MouseFocusCenter_LeapCoords.y()) + "\n");
+        // tempDebug.append(QString::number(tempX) + ", " + QString::number(tempY) + "\n");
+
+        int BoxWidth = 350;
+
+        // tempX -= MouseFocusCenter_LeapCoords.x();
+        tempX = tempX > 200 ? 200 : tempX < 0 ? 0 : tempX;
+        tempX = BoxWidth * (tempX / 200);
+        tempX = MouseFocusCenter.x - (BoxWidth / 2) + tempX;
+
+        tempY += 100;
+        tempY = tempY > 200 ? 200 : tempY < 0 ? 0 : tempY;
+        tempY = BoxWidth - (BoxWidth * (tempY / 200));
+        tempY = MouseFocusCenter.y - (BoxWidth / 2) + tempY;
+      }
+
+      if (abs(position.x - debugLastX) > 0.01)
+        tempX = lerp(CurrentMousePos.x, tempX, dMouseLerpValue);
+      else
+        tempX = CurrentMousePos.x;
+
+      tempY = lerp(CurrentMousePos.y, tempY, dMouseLerpValue);
+      if (ui.checkBox_gesturesParangus->isChecked())
+      {
+        if (abs(position.x - debugLastX) > 12 && abs(position.x - debugLastX) < 20 && !FingerSwipeThrottleTimer->isActive())
+        {
+          bSwipeThrottleTimer = true;
+
+          tempDebug = QString::number(DebugTimerCount) + " - " + QString::number(position.x - debugLastX);
+          if (position.x - debugLastX > 0)
+          {
+
+            // MouseKeyboardEmulation::TypeString(ui.lineEdit_SwipeLeft->text().toLatin1().data());
+
+            if (!bDesktopSwipeMode)
+            {
+              if (ui.lineEdit_SwipeRight->keyboardMods & Qt::ShiftModifier)
+                MouseKeyboardEmulation::KeyVirtualDown(VK_SHIFT);
+              if (ui.lineEdit_SwipeRight->keyboardMods & Qt::ControlModifier)
+                MouseKeyboardEmulation::KeyVirtualDown(VK_CONTROL);
+              if (ui.lineEdit_SwipeRight->keyboardMods & Qt::AltModifier)
+                MouseKeyboardEmulation::KeyVirtualDown(VK_MENU);
+
+
+              MouseKeyboardEmulation::KeyScanDown(ui.lineEdit_SwipeRight->keyCode);
+              Sleep(10);
+              MouseKeyboardEmulation::KeyScanUp(ui.lineEdit_SwipeRight->keyCode);
+
+              if (ui.lineEdit_SwipeRight->keyboardMods & Qt::ShiftModifier)
+                MouseKeyboardEmulation::KeyVirtualUp(VK_SHIFT);
+              if (ui.lineEdit_SwipeRight->keyboardMods & Qt::ControlModifier)
+
+                MouseKeyboardEmulation::KeyVirtualUp(VK_CONTROL);
+              if (ui.lineEdit_SwipeRight->keyboardMods & Qt::AltModifier)
+                MouseKeyboardEmulation::KeyVirtualUp(VK_MENU);
+            }
+            else
+            {
+              MouseKeyboardEmulation::KeyVirtualDown(VK_MENU);
+              Sleep(10);
+
+              MouseKeyboardEmulation::KeyVirtualDown(VK_TAB);
+              Sleep(10);
+              MouseKeyboardEmulation::KeyVirtualUp(VK_TAB);
+              Sleep(10);
+              MouseKeyboardEmulation::KeyVirtualUp(VK_MENU);
+
+            }
+
+            tempDebug.append(", Right ->");
+          }
+          else
+          {
+            // MouseKeyboardEmulation::TypeString(ui.lineEdit_SwipeLeft->text().toLatin1().data());
+            if (!bDesktopSwipeMode)
+            {
+              if (ui.lineEdit_SwipeLeft->keyboardMods & Qt::ShiftModifier)
+                MouseKeyboardEmulation::KeyVirtualDown(VK_SHIFT);
+              if (ui.lineEdit_SwipeLeft->keyboardMods & Qt::ControlModifier)
+                MouseKeyboardEmulation::KeyVirtualDown(VK_CONTROL);
+              if (ui.lineEdit_SwipeLeft->keyboardMods & Qt::AltModifier)
+                MouseKeyboardEmulation::KeyVirtualDown(VK_MENU);
+
+
+              MouseKeyboardEmulation::KeyScanDown(ui.lineEdit_SwipeLeft->keyCode);
+              Sleep(10);
+              MouseKeyboardEmulation::KeyScanUp(ui.lineEdit_SwipeLeft->keyCode);
+
+              if (ui.lineEdit_SwipeLeft->keyboardMods & Qt::ShiftModifier)
+                MouseKeyboardEmulation::KeyVirtualUp(VK_SHIFT);
+              if (ui.lineEdit_SwipeLeft->keyboardMods & Qt::ControlModifier)
+                MouseKeyboardEmulation::KeyVirtualUp(VK_CONTROL);
+              if (ui.lineEdit_SwipeLeft->keyboardMods & Qt::AltModifier)
+                MouseKeyboardEmulation::KeyVirtualUp(VK_MENU);
+            }
+            else
+            {
+
+              MouseKeyboardEmulation::KeyVirtualDown(VK_MENU);
+              Sleep(10);
+              MouseKeyboardEmulation::KeyVirtualDown(VK_SHIFT);
+
+              MouseKeyboardEmulation::KeyVirtualDown(VK_TAB);
+              Sleep(10);
+              MouseKeyboardEmulation::KeyVirtualUp(VK_TAB);
+              Sleep(10);
+              MouseKeyboardEmulation::KeyVirtualUp(VK_MENU);
+              MouseKeyboardEmulation::KeyVirtualUp(VK_SHIFT);
+            }
+
+            tempDebug.append(", Left <-");
+          }
+        }
+      }
+      debugLastX = position.x;
+
+      if (ui.checkBox_indexMouse->isChecked())
+        SetCursorPos(tempX, tempY);
+    }
+
+    // Get finger bones
+    for (int b = 0; b < 4; ++b) {
+      Bone::Type boneType = static_cast<Bone::Type>(b);
+      Bone bone = finger.bone(boneType);
+      // std::cout << std::string(6, ' ') <<  boneNames[boneType]
+      //           << " bone, start: " << bone.prevJoint()
+      //           << ", end: " << bone.nextJoint()
+      //           << ", direction: " << bone.direction() << std::endl;
+    }

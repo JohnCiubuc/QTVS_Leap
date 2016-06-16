@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/QTVS_Leap">
+        <file>Resources/finger_1.png</file>
+    </qresource>
+</RCC>
